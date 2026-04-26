@@ -1,0 +1,7 @@
+{
+  "name": "MenuMaster - Cardápio Digital Profissional",
+  "description": "Sistema completo de cardápio online com pedidos via WhatsApp e painel administrativo.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

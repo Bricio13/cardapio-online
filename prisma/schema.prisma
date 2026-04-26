@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  password String
+}
+
+model Restaurant {
+  id             String @id @default(cuid())
+  name           String
+  logoUrl        String?
+  bannerUrl      String?
+  whatsappNumber String
+  primaryColor   String @default("#FF6321")
+  accentColor    String @default("#000000")
+  address        String?
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  order    Int       @default(0)
+  products Product[]
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  name         String
+  description  String?
+  price        Float
+  imageUrl     String?
+  categoryId   String
+  category     Category    @relation(fields: [categoryId], references: [id])
+  available    Boolean     @default(true)
+  addOns       String?     // JSON string for add-ons
+  orderItems   OrderItem[]
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  customerName   String
+  customerPhone  String
+  address        String
+  paymentMethod  String
+  observations   String?
+  total          Float
+  status         String      @default("novo") // novo, preparando, pronto, entregue
+  createdAt      DateTime    @default(now())
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
