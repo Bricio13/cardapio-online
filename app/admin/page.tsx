@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, 
   ShoppingBag, 
@@ -14,6 +15,7 @@ import {
 import { motion } from 'motion/react';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalRevenue: 0,
@@ -31,27 +33,32 @@ export default function Dashboard() {
           fetch('/api/products')
         ]);
         
+        if (!ordersRes.ok || !productsRes.ok) throw new Error('Fetch failed');
+        
         const orders = await ordersRes.json();
         const products = await productsRes.json();
         
-        const totalRevenue = orders.reduce((acc: number, order: any) => acc + order.total, 0);
-        const activeOrders = orders.filter((order: any) => order.status !== 'entregue').length;
+        const totalRevenue = Array.isArray(orders) ? orders.reduce((acc: number, order: any) => acc + order.total, 0) : 0;
+        const activeOrders = Array.isArray(orders) ? orders.filter((order: any) => order.status !== 'entregue' && order.status !== 'cancelado').length : 0;
         
         setStats({
-          totalOrders: orders.length,
+          totalOrders: Array.isArray(orders) ? orders.length : 0,
           totalRevenue,
           activeOrders,
-          totalProducts: products.length
+          totalProducts: Array.isArray(products) ? products.length : 0
         });
         
-        setRecentOrders(orders.slice(0, 5));
+        setRecentOrders(Array.isArray(orders) ? orders.slice(0, 5) : []);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
     }
+    
     fetchData();
+    const interval = setInterval(fetchData, 5000); // Polling 5s
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) return <div>Carregando dashboard...</div>;
@@ -102,7 +109,12 @@ export default function Dashboard() {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-bold text-gray-900">Pedidos Recentes</h2>
-            <button className="text-[#FF6321] text-sm font-bold hover:underline">Ver todos</button>
+            <button 
+              onClick={() => router.push('/admin/orders')}
+              className="text-[#FF6321] text-sm font-bold hover:underline"
+            >
+              Ver todos
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -148,7 +160,10 @@ export default function Dashboard() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
           <h2 className="font-bold text-gray-900">Ações Rápidas</h2>
           <div className="space-y-3">
-            <button className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all group">
+            <button 
+              onClick={() => router.push('/admin/products?new=true')}
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all group"
+            >
               <div className="flex items-center gap-3">
                 <div className="bg-blue-50 p-2 rounded-lg text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
                   <Package size={20} />
@@ -157,7 +172,10 @@ export default function Dashboard() {
               </div>
               <ArrowUpRight size={16} className="text-gray-400" />
             </button>
-            <button className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all group">
+            <button 
+              onClick={() => router.push('/admin/orders')}
+              className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all group"
+            >
               <div className="flex items-center gap-3">
                 <div className="bg-emerald-50 p-2 rounded-lg text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                   <CheckCircle2 size={20} />

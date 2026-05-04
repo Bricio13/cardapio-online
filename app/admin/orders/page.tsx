@@ -21,18 +21,20 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'ativos' | 'historico'>('ativos');
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 30000); // Refresh every 30s
+    const interval = setInterval(fetchOrders, 5000); // 5s polling for near-real-time
     return () => clearInterval(interval);
   }, []);
 
   async function fetchOrders() {
     try {
       const res = await fetch('/api/orders');
+      if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -41,20 +43,50 @@ export default function OrdersPage() {
   }
 
   async function updateStatus(orderId: string, status: string) {
+    const isMovingToHistory = (status === 'entregue' || status === 'cancelado');
+    const isCurrentlyActive = (activeTab === 'ativos');
+
+    if (status === 'entregue' && isCurrentlyActive) {
+      const confirm = window.confirm('Mover para o histórico?');
+      if (!confirm) return;
+    }
+
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
+      
       if (res.ok) {
-        fetchOrders();
-        if (selectedOrder?.id === orderId) {
+        const updatedOrder = await res.json();
+        
+        // Update local list immediately for better UX
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+        
+        // If it moved out of current tab view, close details
+        if (isMovingToHistory && isCurrentlyActive) {
+          setSelectedOrder(null);
+        } else if (selectedOrder?.id === orderId) {
           setSelectedOrder({ ...selectedOrder, status });
         }
       }
     } catch (error) {
       console.error('Error updating status:', error);
+      alert('Erro ao atualizar status. Tente novamente.');
+    }
+  }
+
+  async function deleteOrder(orderId: string) {
+    if (!window.confirm('Excluir permanentemente este pedido?')) return;
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchOrders();
+        setSelectedOrder(null);
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
     }
   }
 
@@ -65,27 +97,58 @@ export default function OrdersPage() {
     preparando: { icon: Truck, color: 'text-amber-500', bg: 'bg-amber-50', label: 'Preparando' },
     pronto: { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', label: 'Pronto' },
     entregue: { icon: CheckCircle2, color: 'text-gray-500', bg: 'bg-gray-50', label: 'Entregue' },
+    cancelado: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: 'Cancelado' },
   };
+
+  const filteredOrders = orders.filter(order => {
+    if (activeTab === 'ativos') {
+      return order.status !== 'entregue' && order.status !== 'cancelado';
+    } else {
+      return order.status === 'entregue' || order.status === 'cancelado';
+    }
+  });
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            Pedidos 
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded-lg">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Live</span>
+            </div>
+          </h1>
           <p className="text-gray-500">Acompanhe e gerencie os pedidos em tempo real.</p>
         </div>
-        <div className="flex gap-2">
-          <div className="bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            Live
-          </div>
+        
+        <div className="flex gap-2 bg-white p-1.5 rounded-2xl border border-gray-200">
+          <button
+            onClick={() => { setActiveTab('ativos'); setSelectedOrder(null); }}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'ativos' 
+                ? 'bg-[#FF6321] text-white shadow-lg' 
+                : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            Ativos ({orders.filter(o => o.status !== 'entregue' && o.status !== 'cancelado').length})
+          </button>
+          <button
+            onClick={() => { setActiveTab('historico'); setSelectedOrder(null); }}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'historico' 
+                ? 'bg-gray-900 text-white shadow-lg' 
+                : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            Histórico ({orders.filter(o => o.status === 'entregue' || o.status === 'cancelado').length})
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Orders List */}
         <div className="lg:col-span-2 space-y-4">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const config = statusConfig[order.status];
             return (
               <motion.div
@@ -124,15 +187,14 @@ export default function OrdersPage() {
             );
           })}
 
-          {orders.length === 0 && (
+          {filteredOrders.length === 0 && (
             <div className="py-20 text-center text-gray-500 bg-white rounded-2xl border border-dashed border-gray-200">
               <ShoppingBag size={48} className="mx-auto mb-4 opacity-20" />
-              <p>Nenhum pedido recebido ainda.</p>
+              <p>Nenhum pedido {activeTab === 'ativos' ? 'ativo' : 'no histórico'}.</p>
             </div>
           )}
         </div>
 
-        {/* Order Detail */}
         <div className="lg:col-span-1">
           <AnimatePresence mode="wait">
             {selectedOrder ? (
@@ -145,18 +207,15 @@ export default function OrdersPage() {
               >
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-bold text-gray-900 text-xl">Detalhes do Pedido</h2>
+                    <h2 className="font-bold text-gray-900 text-xl">Detalhes</h2>
                     <button onClick={() => setSelectedOrder(null)} className="p-1 hover:bg-gray-200 rounded-full">
                       <XCircle size={20} className="text-gray-400" />
                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">ID: {selectedOrder.id.slice(-6)}</span>
-                  </div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">ID: {selectedOrder.id}</span>
                 </div>
 
                 <div className="p-6 space-y-6">
-                  {/* Customer Info */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-gray-700">
                       <Phone size={18} className="text-gray-400" />
@@ -166,15 +225,8 @@ export default function OrdersPage() {
                       <MapPin size={18} className="text-gray-400 mt-1" />
                       <span className="font-medium">{selectedOrder.address}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-700">
-                      {selectedOrder.paymentMethod === 'pix' ? <QrCode size={18} className="text-gray-400" /> :
-                       selectedOrder.paymentMethod === 'cartao' ? <CreditCard size={18} className="text-gray-400" /> :
-                       <Banknote size={18} className="text-gray-400" />}
-                      <span className="font-medium uppercase">{selectedOrder.paymentMethod}</span>
-                    </div>
                   </div>
 
-                  {/* Items */}
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Itens</h4>
                     <div className="space-y-2">
@@ -197,23 +249,14 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Observations */}
-                  {selectedOrder.observations && (
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                      <h4 className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1">Observações</h4>
-                      <p className="text-sm text-amber-700">{selectedOrder.observations}</p>
-                    </div>
-                  )}
-
-                  {/* Status Actions */}
-                  <div className="space-y-3 pt-4">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Alterar Status</h4>
+                  <div className="space-y-3 pt-4 border-t border-gray-100">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ações</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {['novo', 'preparando', 'pronto', 'entregue'].map((status) => (
+                      {['novo', 'preparando', 'pronto', 'entregue', 'cancelado'].map((status) => (
                         <button
                           key={status}
                           onClick={() => updateStatus(selectedOrder.id, status)}
-                          className={`px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all ${
+                          className={`px-2 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
                             selectedOrder.status === status 
                               ? 'bg-[#FF6321] text-white shadow-md' 
                               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -222,6 +265,14 @@ export default function OrdersPage() {
                           {status}
                         </button>
                       ))}
+                      {activeTab === 'historico' && (
+                        <button
+                          onClick={() => deleteOrder(selectedOrder.id)}
+                          className="px-2 py-2 rounded-xl text-[10px] font-bold uppercase transition-all bg-red-50 text-red-600 hover:bg-red-100 col-span-2 mt-2"
+                        >
+                          Excluir Pedido Permanentemente
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -23,9 +23,10 @@ interface CheckoutModalProps {
   cart: CartItem[];
   total: number;
   restaurant: any;
+  onSuccess?: () => void;
 }
 
-export function CheckoutModal({ isOpen, onClose, cart, total, restaurant }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, cart, total, restaurant, onSuccess }: CheckoutModalProps) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -50,7 +51,10 @@ export function CheckoutModal({ isOpen, onClose, cart, total, restaurant }: Chec
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to create order');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to create order');
+      }
 
       const order = await response.json();
       const shortId = order.id.slice(-6).toUpperCase();
@@ -71,11 +75,11 @@ export function CheckoutModal({ isOpen, onClose, cart, total, restaurant }: Chec
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${restaurant.whatsappNumber}&text=${encodeURIComponent(message)}`;
       
       window.open(whatsappUrl, '_blank');
+      onSuccess?.();
       onClose();
-      // Optionally clear cart here if handled by parent
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Erro ao processar pedido. Tente novamente.');
+      alert(error instanceof Error ? error.message : 'Erro ao processar pedido. Tente novamente.');
     }
   };
 

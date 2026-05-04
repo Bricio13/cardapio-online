@@ -151,6 +151,7 @@ export default function Home() {
         cart={cart}
         total={total}
         restaurant={restaurant}
+        onSuccess={clearCart}
       />
 
       {/* Floating Cart Button for Mobile */}

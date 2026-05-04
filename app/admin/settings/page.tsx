@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, Phone, MapPin, Palette, Settings } from 'lucide-react';
+import { Save, Image as ImageIcon, Phone, MapPin, Palette, Settings, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 
@@ -9,6 +9,10 @@ export default function SettingsPage() {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSecurity, setSavingSecurity] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     whatsappNumber: '',
@@ -17,6 +21,12 @@ export default function SettingsPage() {
     bannerUrl: '',
     primaryColor: '#FF6321',
     accentColor: '#000000'
+  });
+
+  const [securityData, setSecurityData] = useState({
+    currentPassword: '',
+    newEmail: '',
+    newPassword: ''
   });
 
   useEffect(() => {
@@ -74,17 +84,53 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleSecuritySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!securityData.currentPassword) {
+      alert('A senha atual é obrigatória para realizar alterações de segurança.');
+      return;
+    }
+
+    setSavingSecurity(true);
+    try {
+      const res = await fetch('/api/auth/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(securityData),
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        alert('Dados de segurança atualizados com sucesso!');
+        setSecurityData({
+          currentPassword: '',
+          newEmail: '',
+          newPassword: ''
+        });
+      } else {
+        alert(data.error || 'Erro ao atualizar dados de segurança');
+      }
+    } catch (error) {
+      console.error('Error saving security settings:', error);
+      alert('Erro ao conectar com o servidor');
+    } finally {
+      setSavingSecurity(false);
+    }
+  }
+
   if (loading) return <div>Carregando configurações...</div>;
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8 max-w-4xl pb-12">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
         <p className="text-gray-500">Personalize a identidade visual e informações do seu restaurante.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Visual Identity */}
+      <div className="space-y-12">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Visual Identity */}
         <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-8">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Palette size={20} className="text-[#FF6321]" />
@@ -254,6 +300,82 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Security Info */}
+      <form onSubmit={handleSecuritySubmit} className="space-y-6">
+        <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm space-y-6">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Lock size={20} className="text-[#FF6321]" />
+            Segurança e Acesso
+          </h2>
+          <p className="text-sm text-gray-500">Altere seus dados de login. A senha atual é necessária para confirmar as alterações.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Novo E-mail de Login (Opcional)</label>
+              <input
+                type="email"
+                value={securityData.newEmail}
+                onChange={(e) => setSecurityData({ ...securityData, newEmail: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
+                placeholder="novo@email.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha (Opcional)</label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  value={securityData.newPassword}
+                  onChange={(e) => setSecurityData({ ...securityData, newPassword: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Senha Atual (Obrigatória)</label>
+            <div className="relative max-w-md">
+              <input
+                required
+                type={showCurrentPassword ? "text" : "password"}
+                value={securityData.currentPassword}
+                onChange={(e) => setSecurityData({ ...securityData, currentPassword: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border border-[#FF6321]/30 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all bg-[#FF6321]/5"
+                placeholder="Confirme sua senha atual"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            disabled={savingSecurity}
+            type="submit"
+            className="bg-black text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-gray-800 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <Lock size={20} />
+            {savingSecurity ? 'Atualizando...' : 'Atualizar Acesso'}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
   );
 }
