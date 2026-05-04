@@ -18,6 +18,7 @@ export async function verifyToken(token: string) {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload;
   } catch (error) {
+    console.error('Falha na verificação do JWT:', error instanceof Error ? error.message : error);
     return null;
   }
 }

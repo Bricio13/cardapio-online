@@ -26,15 +26,15 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({ success: true, user: { id: user.id, email: user.email } });
     
-    const cookieStore = await cookies();
-    cookieStore.set('auth_token', token, {
+    response.cookies.set('auth_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24, // 1 day
+      secure: true,
+      sameSite: 'none', // Melhor para iframes/previews
+      maxAge: 60 * 60 * 24,
       path: '/',
     });
 
+    console.log(`[Login] Cookie configurado para: ${email}`);
     return response;
   } catch (error) {
     console.error('Login error:', error);

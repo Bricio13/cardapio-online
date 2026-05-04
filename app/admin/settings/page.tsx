@@ -44,6 +44,17 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, field: 'bannerUrl' | 'logoUrl') {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, [field]: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -99,12 +110,20 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-              <input
-                value={formData.bannerUrl}
-                onChange={(e) => setFormData({ ...formData, bannerUrl: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
-                placeholder="URL da Imagem do Banner"
-              />
+              <div className="space-y-3">
+                <input
+                  value={formData.bannerUrl}
+                  onChange={(e) => setFormData({ ...formData, bannerUrl: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
+                  placeholder="URL do Banner ou faça upload abaixo"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, 'bannerUrl')}
+                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#FF6321]/10 file:text-[#FF6321] hover:file:bg-[#FF6321]/20 cursor-pointer"
+                />
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -125,12 +144,20 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-              <input
-                value={formData.logoUrl}
-                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
-                placeholder="URL da Imagem do Logo"
-              />
+              <div className="space-y-3">
+                <input
+                  value={formData.logoUrl}
+                  onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
+                  placeholder="URL do Logo ou faça upload abaixo"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, 'logoUrl')}
+                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#FF6321]/10 file:text-[#FF6321] hover:file:bg-[#FF6321]/20 cursor-pointer"
+                />
+              </div>
             </div>
           </div>
 

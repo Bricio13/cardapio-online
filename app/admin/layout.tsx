@@ -45,6 +45,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { icon: Settings, label: 'Configurações', href: '/admin/settings' },
   ];
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/admin/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -80,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="p-4 border-t border-gray-100">
           <button 
-            onClick={() => router.push('/')}
+            onClick={handleLogout}
             className="flex items-center gap-3 p-3 w-full text-gray-500 hover:bg-gray-100 rounded-xl transition-all"
           >
             <LogOut size={20} />

@@ -65,6 +65,17 @@ export default function ProductsPage() {
     }
   }
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  }
+
   function handleEdit(product: any) {
     setEditingProduct(product);
     setFormData({
@@ -249,14 +260,22 @@ export default function ProductsPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">URL da Imagem</label>
-                    <div className="relative">
-                      <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Imagem do Produto</label>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          value={formData.imageUrl}
+                          onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
+                          placeholder="URL da Imagem ou faça upload abaixo"
+                        />
+                      </div>
                       <input
-                        value={formData.imageUrl}
-                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#FF6321] outline-none transition-all"
-                        placeholder="https://exemplo.com/imagem.jpg"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#FF6321]/10 file:text-[#FF6321] hover:file:bg-[#FF6321]/20 cursor-pointer"
                       />
                     </div>
                   </div>
