@@ -36,7 +36,7 @@ export function CheckoutModal({ isOpen, onClose, cart, total, restaurant }: Chec
   const onSubmit = async (data: CheckoutFormData) => {
     try {
       // 1. Create order in DB
-      const response = await fetch('/app/api/orders', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,9 +52,13 @@ export function CheckoutModal({ isOpen, onClose, cart, total, restaurant }: Chec
 
       if (!response.ok) throw new Error('Failed to create order');
 
+      const order = await response.json();
+      const shortId = order.id.slice(-6).toUpperCase();
+
       // 2. Format WhatsApp message
       const itemsList = cart.map(item => `${item.quantity}x ${item.name} - R$ ${item.price.toFixed(2)}`).join('\n');
-      const message = `*Novo Pedido - ${restaurant.name}*\n\n` +
+      const message = `*Pedido #${shortId} - ${restaurant.name}*\n\n` +
+        `*ID Completo:* ${order.id}\n` +
         `*Cliente:* ${data.name}\n` +
         `*Telefone:* ${data.phone}\n` +
         `*Endereço:* ${data.address}\n\n` +

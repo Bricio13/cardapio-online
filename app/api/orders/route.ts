@@ -41,9 +41,13 @@ export async function POST(request: Request) {
       include: { items: { include: { product: true } } },
     });
 
+    console.log('Pedido criado com sucesso:', order.id);
     return NextResponse.json(order);
   } catch (error) {
-    console.error('Create order error:', error);
-    return NextResponse.json({ error: 'Erro ao criar pedido' }, { status: 500 });
+    console.error('DETALHES DO ERRO AO CRIAR PEDIDO:', error);
+    return NextResponse.json({ 
+      error: 'Erro ao criar pedido', 
+      details: error instanceof Error ? error.message : 'Erro desconhecido' 
+    }, { status: 500 });
   }
 }

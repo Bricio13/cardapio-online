@@ -102,7 +102,12 @@ export default function OrdersPage() {
                       <config.icon size={24} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 text-lg">{order.customerName}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-900 text-lg">{order.customerName}</h3>
+                        <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                          #{order.id.slice(-6)}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                         <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                         <span className="flex items-center gap-1 font-bold text-gray-900">
