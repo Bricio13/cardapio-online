@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { 
   ShoppingBag, 
@@ -34,7 +36,14 @@ export default function OrdersPage() {
       const res = await fetch('/api/orders');
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      setOrders(Array.isArray(data) ? data : []);
+      const newOrders = Array.isArray(data) ? data : [];
+      setOrders(newOrders);
+      
+      // Update selected order if it exists
+      if (selectedOrder) {
+        const updated = newOrders.find(o => o.id === selectedOrder.id);
+        if (updated) setSelectedOrder(updated);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {

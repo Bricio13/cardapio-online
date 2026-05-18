@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { Save, Image as ImageIcon, Phone, MapPin, Palette, Settings, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
